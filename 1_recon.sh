@@ -60,10 +60,12 @@ dnsx -d "$DOMAIN" \
 
 # Combine and deduplicate
 info "Merging subdomain results..."
+# grep exits 1 when nothing matches. With set -e that would abort recon.
 cat "$OUT"/subdomains/*.txt 2>/dev/null \
   | sort -u \
   | grep -E "^[a-zA-Z0-9._-]+\.$DOMAIN$" \
-  > "$OUT/subdomains/all_subdomains.txt"
+  > "$OUT/subdomains/all_subdomains.txt" \
+  || true
 
 TOTAL_SUBS=$(wc -l < "$OUT/subdomains/all_subdomains.txt")
 info "Total unique subdomains: ${BOLD}$TOTAL_SUBS${NC}"
@@ -176,7 +178,8 @@ info "Total endpoints: ${BOLD}$ALL_EP${NC}"
 
 # Filter URLs with parameters (juicy for fuzzing)
 grep "?" "$OUT/endpoints/all_urls.txt" \
-  | sort -u > "$OUT/endpoints/urls_with_params.txt"
+  | sort -u > "$OUT/endpoints/urls_with_params.txt" \
+  || true
 
 PARAMS=$(wc -l < "$OUT/endpoints/urls_with_params.txt")
 info "URLs with parameters: ${BOLD}$PARAMS${NC}"
@@ -188,7 +191,8 @@ section "STEP 6: JS File Collection"
 
 info "Extracting JS files..."
 grep -E "\.js(\?|$)" "$OUT/endpoints/all_urls.txt" \
-  | sort -u > "$OUT/js/js_files.txt"
+  | sort -u > "$OUT/js/js_files.txt" \
+  || true
 
 JS_COUNT=$(wc -l < "$OUT/js/js_files.txt")
 info "JS files found: ${BOLD}$JS_COUNT${NC}"

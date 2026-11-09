@@ -144,26 +144,24 @@ def check_api_paths(base_url: str) -> list[dict]:
 
 def run_arjun(url: str, outdir: str) -> list[str]:
     """Run arjun for deep parameter discovery."""
-    if not any(subprocess.call(['which', 'arjun'], capture_output=True).returncode == 0
-               for _ in [1]):
-        # Try as Python module
-        out_file = os.path.join(outdir, "arjun.json")
-        cmd = [
-            'python3', '-m', 'arjun',
-            '-u', url,
-            '-oJ', out_file,
-            '--stable'
-        ]
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            if os.path.exists(out_file):
-                data = json.loads(Path(out_file).read_text())
-                params = data.get(url, {}).get('params', [])
-                if params:
-                    info(f"Arjun found params for {url}: {params}")
-                return params
-        except Exception as e:
-            warn(f"Arjun failed: {e}")
+    out_file = os.path.join(outdir, "arjun.json")
+    # subprocess.call does not accept capture_output; that raised TypeError
+    # on every URL before arjun could start.
+    which = subprocess.run(['which', 'arjun'], capture_output=True)
+    if which.returncode == 0:
+        cmd = ['arjun', '-u', url, '-oJ', out_file, '--stable']
+    else:
+        cmd = ['python3', '-m', 'arjun', '-u', url, '-oJ', out_file, '--stable']
+    try:
+        subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if os.path.exists(out_file):
+            data = json.loads(Path(out_file).read_text())
+            params = data.get(url, {}).get('params', [])
+            if params:
+                info(f"Arjun found params for {url}: {params}")
+            return params
+    except Exception as e:
+        warn(f"Arjun failed: {e}")
     return []
 
 def process_url(url: str, outdir: str) -> dict:
